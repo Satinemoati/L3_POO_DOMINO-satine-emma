@@ -1,38 +1,109 @@
 package fr.pantheonsorbonne.miage.game;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 public class Board {
-    private final LinkedList<Domino> dominos;
+    
+    // Liste qui contient tous les dominos posés sur le plateau
+    private ArrayList<Domino> dominos;
 
+    // Crée un plateau vide
     public Board() {
-        this.dominos = new LinkedList<>();
+        this.dominos = new ArrayList<>();
     }
 
-    public LinkedList<Domino> getDominos() {
+    // Renvoie la liste des dominos
+    public ArrayList<Domino> getDominos() {
         return dominos;
     }
 
+    // Vérifie si le plateau est vide
+    public boolean isEmpty() {
+        return dominos.isEmpty(); 
+    }
+
+    // Renvoie la valeur du premier domino (-1 si vide)
+    public int getFirstValue() {
+        return isEmpty() ? -1 : dominos.get(0).getLeftValue();
+    }
+
+    // Renvoie la valeur du dernier domino (-1 si vide) 
+    public int getLastValue() {
+        return isEmpty() ? -1 : dominos.get(dominos.size() - 1).getRightValue();
+    }
+
+    // Vérifie si un domino peut être placé
     public boolean canPlaceDomino(Domino domino) {
-        if (dominos.isEmpty()) {
-            return true; // Premier domino peut toujours être placé
+        // Si plateau vide ou domino dynamique, on peut toujours placer
+        if (isEmpty() || domino.getType().equals("Dynamic")) {
+            return true;
         }
-        Domino first = dominos.getFirst();
-        Domino last = dominos.getLast();
-        return domino.getLeftValue() == first.getLeftValue() || domino.getRightValue() == first.getLeftValue()
-                || domino.getLeftValue() == last.getRightValue() || domino.getRightValue() == last.getRightValue();
+
+        // Sinon on vérifie si une des valeurs correspond aux extrémités
+        int debut = getFirstValue();
+        int fin = getLastValue();
+        
+        return domino.getLeftValue() == debut || 
+               domino.getRightValue() == debut ||
+               domino.getLeftValue() == fin || 
+               domino.getRightValue() == fin;
     }
 
-    public void placeDomino(Domino domino, boolean atStart) {
-        if (atStart) {
-            dominos.addFirst(domino);
+    // Place un domino sur le plateau
+    public void placeDomino(Domino domino, boolean auDebut) {
+        if (isEmpty()) {
+            dominos.add(domino);
+            return;
+        }
+
+        // Si domino dynamique, on adapte sa valeur
+        if (domino.getType().equals("Dynamic")) {
+            if (auDebut) {
+                domino.changeValues(getFirstValue(), domino.getRightValue());
+                dominos.add(0, domino);
+            } else {
+                domino.changeValues(domino.getLeftValue(), getLastValue());
+                dominos.add(domino);
+            }
+            return;
+        }
+
+        // Pour un domino normal
+        if (auDebut) {
+            // On vérifie quelle extrémité correspond et on place en conséquence
+            if (domino.getRightValue() == getFirstValue()) {
+                dominos.add(0, domino);
+            } else if (domino.getLeftValue() == getFirstValue()) {
+                // On retourne le domino
+                Domino retourne = new Domino(domino.getRightValue(), domino.getLeftValue(), domino.getType());
+                dominos.add(0, retourne);
+            }
         } else {
-            dominos.addLast(domino);
+            if (domino.getLeftValue() == getLastValue()) {
+                dominos.add(domino);
+            } else if (domino.getRightValue() == getLastValue()) {
+                // On retourne le domino
+                Domino retourne = new Domino(domino.getRightValue(), domino.getLeftValue(), domino.getType());
+                dominos.add(retourne);
+            }
         }
     }
 
+    // Affiche le plateau avec tous les dominos
     @Override
     public String toString() {
-        return "Board: " + dominos;
+        if (dominos.isEmpty()) {
+            return "Plateau vide";
+        }
+        
+        StringBuilder plateau = new StringBuilder("\n🎯 Plateau de jeu:\n");
+        plateau.append("════════════════════════════════\n");
+        
+        for (Domino domino : dominos) {
+            plateau.append(domino.toString()).append(" ");
+        }
+        
+        plateau.append("\n════════════════════════════════");
+        return plateau.toString();
     }
 }
