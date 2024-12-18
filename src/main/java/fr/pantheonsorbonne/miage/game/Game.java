@@ -63,7 +63,7 @@ public final class Game {
             Domino domino = player.chooseDomino(board);
             if (domino != null) {
                 boolean placeAtStart = shouldPlaceAtStart(domino);  // Dynamique : déterminer où jouer
-                boolean placed = board.placeDomino(domino, placeAtStart);
+                board.placeDomino(domino, placeAtStart);
                 player.playDomino(domino);
                 System.out.println(player.getName() + " place " + domino + (placeAtStart ? " à gauche" : " à droite"));
             } else {
@@ -79,7 +79,9 @@ public final class Game {
         // Logique pour déterminer si on place le domino à gauche ou à droite
         int firstValue = board.getFirstValue();
         int lastValue = board.getLastValue();
-        return domino.getLeftValue() == firstValue || domino.getRightValue() == firstValue;
+        // Préférer placer au début si possible, sinon à la fin
+        return (domino.getLeftValue() == firstValue || domino.getRightValue() == firstValue) &&
+               !(domino.getLeftValue() == lastValue || domino.getRightValue() == lastValue);
     }
 
     private boolean tryToDraw(Player player) {

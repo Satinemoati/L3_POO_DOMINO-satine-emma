@@ -1,84 +1,122 @@
 package fr.pantheonsorbonne.miage.net;
 
+import fr.pantheonsorbonne.miage.DominoNetworkEngine;
 import fr.pantheonsorbonne.miage.HostFacade;
-import fr.pantheonsorbonne.miage.game.*;
+import fr.pantheonsorbonne.miage.game.Board;
+import fr.pantheonsorbonne.miage.game.Deck;
+import fr.pantheonsorbonne.miage.game.Domino;
 import fr.pantheonsorbonne.miage.model.Game;
+import fr.pantheonsorbonne.miage.model.GameCommand;
 
 import java.util.*;
 
 public class DominoHostEngine extends DominoNetworkEngine {
 
-    private final Board board;  // Le plateau de jeu
-    private final Deck deck;    // Le jeu de dominos
+    private final Board board;
+    private final Deck deck;
+    private final Map<String, List<Domino>> playerHands;
 
-    /**
-     * Constructeur pour l'hôte du jeu.
-     * @param game Le jeu en cours
-     * @param facade La façade qui gère la communication réseau
-     */
     public DominoHostEngine(Game game, HostFacade facade) {
         super(game, facade);
         this.board = new Board();
         this.deck = new Deck();
+        this.playerHands = new HashMap<>();
     }
 
-    /**
-     * Démarre le jeu en mode hôte.
-     * Initialise le deck, distribue les dominos, puis lance la partie.
-     */
     @Override
     public void start() {
-        System.out.println("=> Démarrage du jeu en mode réseau (Hôte)");
-        deck.shuffle();  // Mélange du deck
+        System.out.println("=> Démarrage du jeu en tant qu'hôte réseau...");
+        deck.shuffle();
+        sendCommandToAll("gameStarted", "La partie de Domino commence!");
 
-        sendCommandToAll("gameStarted", "La partie a commencé!");
-
-        // Distribution initiale des dominos
-        for (String player : game.getPlayers()) {
-            ArrayList<Domino> hand = new ArrayList<>();
-            for (int i = 0; i < 7; i++) {
-                hand.add(deck.draw());  // Donne un domino à chaque joueur
-            }
-            sendCommandToPlayer(player, "initialHand", hand.toString());
-        }
-
-        playGame();  // Démarre la boucle de jeu
+        distributeInitialHands();
+        playGame();
     }
 
-    /**
-     * Méthode principale pour jouer la partie.
-     * Chaque joueur prend son tour de jouer, en recevant et jouant un domino.
-     */
-    private void playGame() {
-        while (!isGameOver()) {  // Tant que le jeu n'est pas terminé
-            for (String player : game.getPlayers()) {
-                sendCommandToPlayer(player, "yourTurn", "Jouez un domino!");
+    private void distributeInitialHands() {
+        for (String player : game.getPlayers()) {
+            List<Domino> hand = new ArrayList<>();
+            for (int i = 0; i < 7; i++) {
+                hand.add(deck.draw());
+            }
+            playerHands.put(player, hand);
+            sendCommandToPlayer(player, "initialHand", hand.toString());
+        }
+    }
 
-                // Recevoir et simuler la commande de domino joué
+    private void playGame() {
+        int consecutivePasses = 0;
+
+        while (!isGameOver()) {
+            for (String player : game.getPlayers()) {
+                sendCommandToAll("boardState", board.toString());
+                sendCommandToPlayer(player, "yourTurn", "");
+
                 GameCommand command = receiveCommand();
-                if (command.name().equals("playDomino")) {
-                    // Simule l'action de jouer un domino
-                    System.out.println(player + " a joué : " + command.body());
-                    // Logique pour vérifier et placer le domino (non implémentée ici)
+
+                if (command == null) continue;
+
+                if ("playDomino".equals(command.name())) {
+                    handleDominoPlayed(player, command.body());
+                    consecutivePasses = 0;
+                } else if ("pass".equals(command.name())) {
+                    consecutivePasses++;
+                    sendCommandToAll("playerPassed", player);
+                    if (consecutivePasses >= game.getPlayers().size()) {
+                        declareGameBlocked();
+                        return;
+                    }
                 }
             }
         }
 
-        declareWinner();  // Déclare le gagnant
+        findAndDeclareWinner();
     }
 
-    /**
-     * Vérifie si le jeu est terminé.
-     * @return true si le jeu est terminé, false sinon
-     */
+    private void handleDominoPlayed(String player, String dominoStr) {
+        Domino domino = Domino.fromString(dominoStr);
+        List<Domino> playerHand = playerHands.get(player);
+
+        if (playerHand != null && playerHand.contains(domino) && board.canPlaceDomino(domino)) {
+            board.placeDomino(domino, true);
+            playerHand.remove(domino);
+            sendCommandToAll("dominoPlayed", player + ":" + domino);
+
+            if (playerHand.isEmpty()) {
+                declareWinner(player);
+            }
+        } else {
+            sendCommandToPlayer(player, "invalidMove", "Coup invalide, réessayez.");
+        }
+    }
+
     private boolean isGameOver() {
-        return deck.getRemainingDominoes() == 0;  // Le jeu est terminé lorsque tous les dominos ont été joués
+        return playerHands.values().stream().allMatch(List::isEmpty) || deck.getRemainingDominoes() == 0;
     }
 
-    /**
-     * Déclare le gagnant de la partie.
-     */
-    private void declareWinner() {
-        sendCommandToAll("gameOver", "La partie est terminée!");
+    private void declareWinner(String winner) {
+        sendCommandToAll("gameOver", "Le gagnant est " + winner + "!");
+    }
+
+    private void declareGameBlocked() {
+        sendCommandToAll("gameBlocked", "La partie est bloquée!");
+        findAndDeclareWinner();
+    }
+
+    private void findAndDeclareWinner() {
+        String winner = null;
+        int minPoints = Integer.MAX_VALUE;
+
+        for (Map.Entry<String, List<Domino>> entry : playerHands.entrySet()) {
+            int points = entry.getValue().stream()
+                    .mapToInt(domino -> domino.getLeftValue() + domino.getRightValue())
+                    .sum();
+            if (points < minPoints) {
+                minPoints = points;
+                winner = entry.getKey();
+            }
+        }
+
+        declareWinner(winner);
     }
 }

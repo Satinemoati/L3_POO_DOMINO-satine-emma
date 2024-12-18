@@ -87,5 +87,14 @@ public class Board {
         plateau.append("\n================");
         return plateau.toString();
     }
+
+    public static Board fromString(String str) {
+        Board board = new Board();
+        if (!str.isEmpty()) {
+            // Parse le string et ajoute les dominos au board
+            // Pour l'instant, on retourne juste un board vide
+        }
+        return board;
+    }
 }
 

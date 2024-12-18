@@ -65,4 +65,9 @@ public class Domino {
         Domino otherDomino = (Domino) other;
         return this.leftValue == otherDomino.leftValue && this.rightValue == otherDomino.rightValue;
     }
+
+    public static Domino fromString(String str) {
+        String[] values = str.split(",");
+        return new Domino(Integer.parseInt(values[0]), Integer.parseInt(values[1]), "Normal");
+    }
 }

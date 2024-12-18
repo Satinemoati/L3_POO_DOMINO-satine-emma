@@ -3,8 +3,6 @@ package fr.pantheonsorbonne.miage.game;
 import java.util.ArrayList;
 import java.util.List;
 
-import fr.pantheonsorbonne.miage.game.Player;
-
 public class DominoTest {
     public static void main(String[] args) {
         afficherBienvenue();

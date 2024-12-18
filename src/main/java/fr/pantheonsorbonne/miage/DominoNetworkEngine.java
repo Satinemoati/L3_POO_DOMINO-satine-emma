@@ -1,8 +1,8 @@
 package fr.pantheonsorbonne.miage;
 
 import fr.pantheonsorbonne.miage.model.Game;
-import fr.pantheonsorbonne.miage.model.GameCommand;
-
+import fr.pantheonsorbonne.miage.model.GameCommand;  // Assurez-vous que GameCommand existe
+      // Assurez-vous que Facade existe
 /**
  * Classe de base pour la gestion des commandes réseau liées au jeu du domino.
  * Cette classe est utilisée à la fois par l'hôte et les joueurs pour envoyer et recevoir des commandes.
