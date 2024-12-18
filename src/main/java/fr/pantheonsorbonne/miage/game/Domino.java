@@ -34,7 +34,7 @@ public class Domino {
             leftValue = newLeft;
             rightValue = newRight;
             effectUsed = true;
-            System.out.println("🔄 Domino modifié: [" + leftValue + "|" + rightValue + "]");
+            System.out.println("Domino modifié: [" + leftValue + "|" + rightValue + "]");
         }
     }
 
@@ -48,15 +48,15 @@ public class Domino {
 
     @Override
     public String toString() {
-        String symbol = "⚪";
-        if (type.equals("Dynamic")) symbol = "🔄";
-        if (type.equals("Blocking")) symbol = "🚫"; 
-        if (type.equals("Double Bonus")) symbol = "⭐";
+        String prefix = "";
+        if (type.equals("Dynamic")) prefix = "D";
+        if (type.equals("Blocking")) prefix = "B"; 
+        if (type.equals("Double Bonus")) prefix = "*";
         
         if (isDouble()) {
-            return symbol + "『" + leftValue + "∥" + rightValue + "』";
+            return prefix + "[" + leftValue + "|" + rightValue + "]";
         }
-        return symbol + "[" + leftValue + "|" + rightValue + "]";
+        return prefix + "[" + leftValue + "|" + rightValue + "]";
     }
 
     @Override

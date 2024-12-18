@@ -1,7 +1,9 @@
-package fr.pantheonsorbonne.miage.game;
+package fr.pantheonsorbonne.miage;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import fr.pantheonsorbonne.miage.game.Domino;
 
 public final class Player {
     private final String name;

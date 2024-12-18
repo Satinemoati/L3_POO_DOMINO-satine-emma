@@ -1,6 +1,8 @@
-package fr.pantheonsorbonne.miage.game;
+package fr.pantheonsorbonne.miage;
 
 import java.util.ArrayList;
+
+import fr.pantheonsorbonne.miage.game.Domino;
 
 public class Board {
     
@@ -96,14 +98,14 @@ public class Board {
             return "Plateau vide";
         }
         
-        StringBuilder plateau = new StringBuilder("\n🎯 Plateau de jeu:\n");
-        plateau.append("════════════════════════════════\n");
+        StringBuilder plateau = new StringBuilder("\nPlateau de jeu:\n");
+        plateau.append("================\n");
         
         for (Domino domino : dominos) {
             plateau.append(domino.toString()).append(" ");
         }
         
-        plateau.append("\n════════════════════════════════");
+        plateau.append("\n================");
         return plateau.toString();
     }
 }

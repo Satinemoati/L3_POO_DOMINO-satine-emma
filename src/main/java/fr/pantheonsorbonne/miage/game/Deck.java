@@ -51,7 +51,7 @@ public class Deck {
                 deck.add(newDomino);
             }
         }
-        System.out.println("🎲 Pioche créée avec " + deck.size() + " dominos");
+        System.out.println(" Pioche créée avec " + deck.size() + " dominos");
     }
 
     // Shuffles the dominoes
@@ -71,22 +71,20 @@ public class Deck {
         
         // Replace the old deck with the new shuffled one
         deck = tempDeck;
-        System.out.println("🔀 Pioche mélangée");
+        System.out.println(" Pioche mélangée");
     }
 
     // Draw a domino
     public Domino draw() {
-        // Check if deck is empty
         if (deck.size() == 0) {
-            System.out.println("❌ La pioche est vide!");
+            System.out.println("La pioche est vide!");
             return null;
         }
         
-        // Take the first domino and remove it from the deck
         Domino drawnDomino = deck.get(0);
         deck.remove(0);
         
-        System.out.println("📤 Drew a domino: " + drawnDomino);
+        System.out.println("Pioche d'un domino: " + drawnDomino);
         return drawnDomino;
     }
 
