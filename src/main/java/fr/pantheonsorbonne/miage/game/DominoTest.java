@@ -1,11 +1,9 @@
-package fr.pantheonsorbonne.miage;
-
-import fr.pantheonsorbonne.miage.game.Game;
-import fr.pantheonsorbonne.miage.Player;
-import fr.pantheonsorbonne.miage.game.*;
+package fr.pantheonsorbonne.miage.game;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import fr.pantheonsorbonne.miage.game.Player;
 
 public class DominoTest {
     public static void main(String[] args) {

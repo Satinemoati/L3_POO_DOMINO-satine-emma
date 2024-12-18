@@ -53,24 +53,16 @@ public class Domino {
         if (type.equals("Blocking")) prefix = "B"; 
         if (type.equals("Double Bonus")) prefix = "*";
         
-        if (isDouble()) {
-            return prefix + "[" + leftValue + "|" + rightValue + "]";
-        }
         return prefix + "[" + leftValue + "|" + rightValue + "]";
     }
 
     @Override
     public boolean equals(Object other) {
-        if (this == other) return true;
-        if (!(other instanceof Domino)) return false;
-        Domino domino = (Domino) other;
-        return leftValue == domino.leftValue && 
-               rightValue == domino.rightValue &&
-               type.equals(domino.type);
-    }
-
-    @Override
-    public int hashCode() {
-        return 31 * (31 * leftValue + rightValue) + type.hashCode();
+        if (this == other) 
+            return true;
+        if (!(other instanceof Domino))
+            return false; 
+        Domino otherDomino = (Domino) other;
+        return this.leftValue == otherDomino.leftValue && this.rightValue == otherDomino.rightValue;
     }
 }

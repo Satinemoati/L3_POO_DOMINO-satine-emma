@@ -2,12 +2,9 @@ package fr.pantheonsorbonne.miage.game;
 
 import java.util.List;
 
-import fr.pantheonsorbonne.miage.game.Deck;
-import fr.pantheonsorbonne.miage.game.Domino;
-
 public final class Game {
     private Board board;
-    private List<Player> players; 
+    private List<Player> players;
     private Deck deck;
     private int currentPlayerIndex;
 
@@ -23,28 +20,6 @@ public final class Game {
         this.currentPlayerIndex = players.indexOf(findFirstPlayer());
     }
 
-    private Player findFirstPlayer() {
-        for (Player player : players) {
-            for (Domino d : player.getHand()) {
-                if (d.getLeftValue() == 6 && d.getRightValue() == 6) {
-                    return player;
-                }
-            }
-        }
-
-        for (int i = 5; i >= 0; i--) {
-            for (Player player : players) {
-                for (Domino d : player.getHand()) {
-                    if (d.getLeftValue() == i && d.getRightValue() == i) {
-                        return player;
-                    }
-                }
-            }
-        }
-
-        return players.get(0);
-    }
-
     private void giveStartingDominoes() {
         for (Player player : players) {
             for (int i = 0; i < 7; i++) {
@@ -53,88 +28,67 @@ public final class Game {
         }
     }
 
+    private Player findFirstPlayer() {
+        Player startingPlayer = null;
+        Domino highestDouble = null;
+
+        for (Player player : players) {
+            for (Domino d : player.getHand()) {
+                if (d.isDouble()) {
+                    if (highestDouble == null || d.getLeftValue() > highestDouble.getLeftValue()) {
+                        highestDouble = d;
+                        startingPlayer = player;
+                    }
+                }
+            }
+        }
+        if (startingPlayer == null) startingPlayer = players.get(0);
+        System.out.println("Le premier joueur est : " + startingPlayer.getName());
+        return startingPlayer;
+    }
+
     public void playTurn() {
         Player player = players.get(currentPlayerIndex);
         System.out.println("\n------------------------");
-        System.out.println("Tour de " + player.getName());
+        System.out.println("Tour de " + player.getName() + " (" + player.getSkill() + ")");
         System.out.println("Dominos en main : " + player.getHand());
         System.out.println("Dominos restants dans la pioche : " + deck.getRemainingDominoes());
 
-        boolean hasPlayed = tryToPlay(player);
-        if (!hasPlayed) {
-            System.out.println("Pas de domino jouable, tentative de pioche...");
-            tryToDraw(player);
+        if (!player.canPlay(board)) {
+            System.out.println(player.getName() + " ne peut pas jouer et essaie de piocher...");
+            if (!tryToDraw(player)) {
+                System.out.println("La pioche est vide, " + player.getName() + " passe son tour.");
+            }
+        } else {
+            Domino domino = player.chooseDomino(board);
+            if (domino != null) {
+                boolean placeAtStart = shouldPlaceAtStart(domino);  // Dynamique : déterminer où jouer
+                boolean placed = board.placeDomino(domino, placeAtStart);
+                player.playDomino(domino);
+                System.out.println(player.getName() + " place " + domino + (placeAtStart ? " à gauche" : " à droite"));
+            } else {
+                System.out.println(player.getName() + " n'a pas de domino valide à jouer.");
+            }
         }
 
         System.out.println(board);
-        System.out.println("------------------------");
+        moveToNextPlayer();
     }
 
-    private boolean tryToPlay(Player player) {
-        if (board.isEmpty()) {
-            Domino highestDouble = player.getHighestDouble();
-            if (highestDouble != null) {
-                board.placeDomino(highestDouble, true);
-                player.playDomino(highestDouble);
-                System.out.println(player.getName() + " joue le premier domino : " + highestDouble);
-                moveToNextPlayer();
-                return true;
-            }
-            return false;
-        }
-
-        if (!player.canPlay(board)) {
-            return false;
-        }
-
-        Domino domino = player.chooseDomino(board);
-        if (domino == null) {
-            return false;
-        }
-
-        boolean placeAtStart = chooseBestEnd(domino, board);
-        if (board.placeDomino(domino, placeAtStart)) {
-            player.playDomino(domino);
-            System.out.println(player.getName() + " place " + domino + 
-                (placeAtStart ? " à gauche" : " à droite"));
-            moveToNextPlayer();
-            return true;
-        }
-        return false;
+    private boolean shouldPlaceAtStart(Domino domino) {
+        // Logique pour déterminer si on place le domino à gauche ou à droite
+        int firstValue = board.getFirstValue();
+        int lastValue = board.getLastValue();
+        return domino.getLeftValue() == firstValue || domino.getRightValue() == firstValue;
     }
 
-    private boolean chooseBestEnd(Domino domino, Board board) {
-        int leftValue = board.getFirstValue();
-        int rightValue = board.getLastValue();
-
-        boolean fitsLeft = domino.getRightValue() == leftValue || domino.getLeftValue() == leftValue;
-        boolean fitsRight = domino.getLeftValue() == rightValue || domino.getRightValue() == rightValue;
-
-        if (fitsLeft && fitsRight) {
-            return domino.getLeftValue() > domino.getRightValue();
-        }
-
-        return fitsLeft;
-    }
-
-    private void tryToDraw(Player player) {
-        if (deck.getRemainingDominoes() == 0) {
-            System.out.println("La pioche est vide, " + player.getName() + " passe son tour.");
-            moveToNextPlayer();
-            return;
-        }
+    private boolean tryToDraw(Player player) {
+        if (deck.getRemainingDominoes() == 0) return false;
 
         Domino newDomino = deck.draw();
         player.addDomino(newDomino);
-        System.out.println(player.getName() + " pioche " + newDomino);
-
-        if (board.placeDomino(newDomino, chooseBestEnd(newDomino, board))) {
-            player.playDomino(newDomino);
-            System.out.println(player.getName() + " joue le domino pioché.");
-        } else {
-            System.out.println("Le domino pioché ne peut pas être joué.");
-            moveToNextPlayer();
-        }
+        System.out.println(player.getName() + " pioche un domino : " + newDomino);
+        return true;
     }
 
     private void moveToNextPlayer() {
@@ -142,53 +96,65 @@ public final class Game {
     }
 
     public boolean isGameOver() {
-        for (Player player : players) {
-            if (player.getHand().isEmpty()) {
-                showWinner();
-                return true;
-            }
-        }
-
-        if (deck.getRemainingDominoes() == 0) {
-            boolean canPlay = players.stream().anyMatch(p -> p.canPlay(board));
-            if (!canPlay) {
-                showWinner();
-                return true;
-            }
-        }
+        if (players.stream().anyMatch(p -> p.getHand().isEmpty())) return true;
+        if (deck.getRemainingDominoes() == 0 && players.stream().noneMatch(p -> p.canPlay(board))) return true;
         return false;
     }
 
     public void start() {
         System.out.println("\n=== 🎮 Début de la Partie ===");
-        System.out.println("\n👥 Joueurs :");
-        players.forEach(p -> System.out.println("- " + p.getName() + " (" + p.getSkill() + ")"));
-
         while (!isGameOver()) {
             playTurn();
         }
+    
+        System.out.println("\n=== 🏁 Fin de la Partie ===");
+    
+        // Afficher le vainqueur
+        showWinner();
+        System.out.println(); // Ligne vide pour la lisibilité
+    
+        // Afficher les résultats finaux
+        showResults();
     }
+    
 
+    
     private void showWinner() {
         Player winner = null;
-        int bestScore = Integer.MAX_VALUE;
-
+    
+        // Vérifier si un joueur a terminé ses dominos
         for (Player player : players) {
             if (player.getHand().isEmpty()) {
-                winner = player;
-                break;
-            }
-            int score = player.calculateRemainingPoints();
-            if (score < bestScore) {
-                bestScore = score;
-                winner = player;
+                System.out.println(player.getName() + " a gagné en ayant terminé tous ses dominos !");
+                return; // Arrêter la méthode immédiatement si un joueur a gagné
             }
         }
-
+    
+        // Si la pioche est vide, déterminer le gagnant par les points
+        if (deck.getRemainingDominoes() == 0) {
+            winner = players.stream()
+                    .min((p1, p2) -> Integer.compare(p1.calculateRemainingPoints(), p2.calculateRemainingPoints()))
+                    .orElse(null);
+        }
+    
+        // Afficher le gagnant basé sur les points ou message par défaut
         if (winner != null) {
-            System.out.println("\n🏆 Le gagnant est " + winner.getName() + " !");
-            players.forEach(p -> 
-                System.out.println(p.getName() + ": " + p.calculateRemainingPoints() + " points"));
+            System.out.println(winner.getName() + " a gagné avec un total de " 
+                               + winner.calculateRemainingPoints() + " points !");
+        } else {
+            System.out.println("Aucun gagnant clair n'a pu être déterminé !");
+        }
+    }
+    
+    
+
+    private void showResults() {
+        System.out.println("\n=== Fin de la Partie ===");
+        System.out.println("Résultats finaux :");
+
+        for (Player player : players) {
+            int score = player.calculateRemainingPoints();
+            System.out.println("le joeur qui gagne la partie est "+ player.getName() + " avec : " + score + " points");
         }
     }
 }
