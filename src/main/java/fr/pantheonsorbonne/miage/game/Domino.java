@@ -34,7 +34,7 @@ public class Domino {
             leftValue = newLeft;
             rightValue = newRight;
             effectUsed = true;
-            System.out.println("Domino modifié: [" + leftValue + "|" + rightValue + "]");
+            System.out.println("Domino Dynamique modifié: [" + leftValue + "|" + rightValue + "]");
         }
     }
 
@@ -56,28 +56,14 @@ public class Domino {
         return prefix + "[" + leftValue + "|" + rightValue + "]";
     }
 
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) 
-            return true;
-        if (!(other instanceof Domino))
-            return false; 
-        Domino otherDomino = (Domino) other;
-        return this.leftValue == otherDomino.leftValue && this.rightValue == otherDomino.rightValue;
-    }
-
-    /**
-     * Convertit une chaîne en objet Domino.
-     * Exemple d'entrée : "[2|4]" ou "2|4"
-     */
     public static Domino fromString(String str) {
-        str = str.replaceAll("[^0-9|]", ""); // Nettoyer les caractères non numériques ou le séparateur "|"
+        str = str.replaceAll("[^0-9|]", "");
         String[] values = str.split("\\|");
         if (values.length == 2) {
             try {
                 int leftValue = Integer.parseInt(values[0]);
                 int rightValue = Integer.parseInt(values[1]);
-                return new Domino(leftValue, rightValue, "Normal");
+                return new Domino(leftValue, rightValue, "Standard");
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Erreur de format pour le domino : " + str, e);
             }

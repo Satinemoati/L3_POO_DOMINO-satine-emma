@@ -1,9 +1,6 @@
 package fr.pantheonsorbonne.miage.net;
 
-import fr.pantheonsorbonne.miage.game.Board;
-import fr.pantheonsorbonne.miage.game.Deck;
-import fr.pantheonsorbonne.miage.game.Domino;
-import fr.pantheonsorbonne.miage.game.Player;
+import fr.pantheonsorbonne.miage.game.*;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -18,6 +15,7 @@ public class DominoHostEngine {
     private final ServerSocket serverSocket;
     private final List<Player> players;
     private final List<Socket> playerSockets;
+    private boolean skipNextPlayer = false;
 
     public DominoHostEngine(int port) throws IOException {
         this.board = new Board();
@@ -81,16 +79,22 @@ public class DominoHostEngine {
 
     private void playGame() throws IOException {
         int currentPlayerIndex = 0;
-        int consecutivePasses = 0; // Compteur pour détecter une partie bloquée
 
-        while (!isGameOver(consecutivePasses)) {
+        while (!isGameOver()) {
             Player currentPlayer = players.get(currentPlayerIndex);
             Socket currentSocket = playerSockets.get(currentPlayerIndex);
             PrintWriter out = new PrintWriter(currentSocket.getOutputStream(), true);
 
-            System.out.println("\nTour de : " + currentPlayer.getName());
-            broadcastMessage("boardState:" + board);
+            if (skipNextPlayer) {
+                System.out.println(currentPlayer.getName() + " est bloqué et ne peut pas jouer !");
+                broadcastMessage("playerBlocked:" + currentPlayer.getName() + " est bloqué !");
+                skipNextPlayer = false;
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+                continue;
+            }
+
             out.println("yourTurn");
+            broadcastMessage("boardState:" + board.toString());
 
             BufferedReader in = new BufferedReader(new InputStreamReader(currentSocket.getInputStream()));
             String command = in.readLine();
@@ -100,55 +104,58 @@ public class DominoHostEngine {
                 Domino domino = Domino.fromString(dominoStr);
 
                 if (board.canPlaceDomino(domino)) {
-                    board.placeDomino(domino, true);
+                    handleDominoPlay(currentPlayer, domino);
                     playerHands.get(currentPlayer.getName()).remove(domino);
-                    consecutivePasses = 0;
-
-                    System.out.println(currentPlayer.getName() + " a joué : " + domino);
-                    broadcastMessage("dominoPlayed:" + currentPlayer.getName() + " a joué : " + domino);
                 } else {
-                    out.println("invalidMove:Le coup est invalide. Réessayez.");
+                    out.println("invalidMove:Ce coup n'est pas valide. Réessayez.");
+                    continue;
                 }
-                displayBoardState();
-            } else if (command != null && command.equals("pass")) {
-                consecutivePasses++;
-                System.out.println(currentPlayer.getName() + " passe son tour.");
-                broadcastMessage("playerPassed:" + currentPlayer.getName() + " passe son tour.");
+            } else if (command != null && command.equals("draw")) {
+                handleDraw(currentPlayer, out);
+                continue;
             }
 
             currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
         }
 
-        endGame();
+        determineWinner();
     }
 
-    private boolean isGameOver(int consecutivePasses) {
-        boolean allHandsEmpty = playerHands.values().stream().allMatch(List::isEmpty);
-        boolean allDominoesPlayed = deck.getRemainingDominoes() == 0;
+    private void handleDominoPlay(Player player, Domino domino) throws IOException {
+        if (domino.getType().equals("Blocking")) {
+            System.out.println(player.getName() + " a joué un domino bloquant !");
+            skipNextPlayer = true;
+        } else if (domino.getType().equals("Dynamic")) {
+            domino.changeValues(board.getFirstValue(), board.getLastValue());
+            System.out.println("Domino Dynamique modifié par " + player.getName() + " : " + domino);
+        } else if (domino.getType().equals("Double Bonus")) {
+            int sum = board.getFirstValue() + board.getLastValue();
+            if (sum % 5 == 0) {
+                System.out.println(player.getName() + " a joué un Double Bonus et reçoit un bonus !");
+            }
+        }
 
-        // La partie se termine si toutes les mains sont vides ou si tous les joueurs passent leur tour
-        return allHandsEmpty || (consecutivePasses >= players.size());
+        board.placeDomino(domino, true);
+        System.out.println(player.getName() + " a joué : " + domino);
+        broadcastMessage("dominoPlayed:" + player.getName() + " a joué : " + domino);
     }
 
-    private void endGame() throws IOException {
-        System.out.println("=> Fin de la partie !");
-        broadcastMessage("gameOver:La partie est terminée !");
-
-        Map<String, Integer> scores = calculateScores();
-        String winner = scores.entrySet().stream()
-                .min(Comparator.comparingInt(Map.Entry::getValue))
-                .map(Map.Entry::getKey)
-                .orElse("Aucun");
-
-        System.out.println("Le gagnant est : " + winner);
-        broadcastMessage("gameOver:Le gagnant est : " + winner);
-
-        for (Map.Entry<String, Integer> entry : scores.entrySet()) {
-            System.out.println(entry.getKey() + " a un total de " + entry.getValue() + " points.");
+    private void handleDraw(Player player, PrintWriter out) throws IOException {
+        if (deck.getRemainingDominoes() > 0) {
+            Domino newDomino = deck.draw();
+            playerHands.get(player.getName()).add(newDomino);
+            out.println("drawnDomino:" + newDomino);
+            broadcastMessage("playerDrew:" + player.getName() + " a pioché.");
+        } else {
+            out.println("noDraw:La pioche est vide.");
         }
     }
 
-    private Map<String, Integer> calculateScores() {
+    private boolean isGameOver() {
+        return playerHands.values().stream().allMatch(List::isEmpty) || deck.isEmpty();
+    }
+
+    private void determineWinner() throws IOException {
         Map<String, Integer> scores = new HashMap<>();
         for (Player player : players) {
             int score = playerHands.get(player.getName()).stream()
@@ -156,13 +163,14 @@ public class DominoHostEngine {
                     .sum();
             scores.put(player.getName(), score);
         }
-        return scores;
-    }
 
-    private void displayBoardState() {
-        System.out.println("\nPlateau de jeu actuel :");
-        System.out.println(board);
-        System.out.println("========================");
+        Map.Entry<String, Integer> winner = scores.entrySet().stream()
+                .min(Map.Entry.comparingByValue())
+                .orElse(null);
+
+        if (winner != null) {
+            broadcastMessage("gameOver:" + winner.getKey() + " gagne avec " + winner.getValue() + " points !");
+        }
     }
 
     private void broadcastMessage(String message) throws IOException {
@@ -177,7 +185,7 @@ public class DominoHostEngine {
             DominoHostEngine hostEngine = new DominoHostEngine(12345);
             hostEngine.start();
         } catch (IOException e) {
-            System.err.println("Erreur lors du démarrage du serveur : " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

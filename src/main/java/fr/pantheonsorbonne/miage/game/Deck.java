@@ -19,63 +19,58 @@ public class Deck {
         for (int left = 0; left <= 6; left++) {
             for (int right = left; right <= 6; right++) {
                 String combinationKey = left + "|" + right;
-                if (usedCombinations.contains(combinationKey)) {
-                    continue;
+                if (!usedCombinations.contains(combinationKey)) {
+                    String type = determineType(left, right);
+                    Domino newDomino = new Domino(left, right, type);
+                    deck.add(newDomino);
+                    usedCombinations.add(combinationKey);
                 }
-
-                String type = "Standard";
-                if (left == right) {
-                    type = (left % 2 == 0) ? "Double Bonus" : "Standard";
-                } else if (left + right > 10) {
-                    type = "Blocking";
-                } else if (left + right < 5) {
-                    type = "Dynamic";
-                }
-
-                usedCombinations.add(combinationKey);
-                Domino newDomino = new Domino(left, right, type);
-                deck.add(newDomino);
             }
         }
         System.out.println(" Pioche créée avec " + deck.size() + " dominos");
     }
 
+    private String determineType(int left, int right) {
+        if (left == right) {
+            return (left % 2 == 0) ? "Double Bonus" : "Standard";
+        } else if (left + right > 10) {
+            return "Blocking";
+        } else if (left + right < 5) {
+            return "Dynamic";
+        }
+        return "Standard";
+    }
+
     public void shuffle() {
         ArrayList<Domino> tempDeck = new ArrayList<>();
-        
         while (!deck.isEmpty()) {
-            int randomIndex = (int)(Math.random() * deck.size());
-            tempDeck.add(deck.get(randomIndex));
-            deck.remove(randomIndex);
+            int randomIndex = (int) (Math.random() * deck.size());
+            tempDeck.add(deck.remove(randomIndex));
         }
-        
         deck = tempDeck;
         System.out.println(" Pioche mélangée");
     }
 
     public Domino draw() {
-        if (deck.size() == 0) {
-            System.out.println("La pioche est vide!");
+        if (deck.isEmpty()) {
+            System.out.println("La pioche est vide !");
             return null;
         }
-        
-        Domino drawnDomino = deck.get(0);
-        deck.remove(0);
+        Domino drawnDomino = deck.remove(0);
         System.out.println("Pioche d'un domino: " + drawnDomino);
         return drawnDomino;
-    }
-
-    public ArrayList<Domino> getDeck() {
-        return deck;
     }
 
     public int getRemainingDominoes() {
         return deck.size();
     }
 
+    @Override
     public String toString() {
         return "Deck: " + deck.size() + " dominoes remaining";
     }
 
-
+    public boolean isEmpty() {
+        return deck.isEmpty(); // Si `deck` est la collection représentant la pioche.
+    }
 }

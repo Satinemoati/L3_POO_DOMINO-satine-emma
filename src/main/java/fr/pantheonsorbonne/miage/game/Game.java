@@ -63,6 +63,7 @@ public final class Game {
             Domino domino = player.chooseDomino(board);
             if (domino != null) {
                 boolean placeAtStart = shouldPlaceAtStart(domino);
+                handleSpecialDominoEffects(player, domino);
                 board.placeDomino(domino, placeAtStart);
                 player.playDomino(domino);
                 System.out.println(player.getName() + " place " + domino + (placeAtStart ? " à gauche" : " à droite"));
@@ -73,13 +74,21 @@ public final class Game {
 
         System.out.println(board);
 
-        // Vérifier si le joueur a gagné en vidant sa main
         if (player.getHand().isEmpty()) {
             System.out.println("\n=== 🎉 " + player.getName() + " a gagné en jouant tous ses dominos ! ===");
             return;
         }
 
         moveToNextPlayer();
+    }
+
+    private void handleSpecialDominoEffects(Player player, Domino domino) {
+        if (domino.getType().equals("Blocking")) {
+            System.out.println("Domino Bloquant joué par " + player.getName() + "! Le joueur suivant est bloqué.");
+            moveToNextPlayer(); // Le joueur suivant est directement sauté.
+        } else if (domino.getType().equals("Double Bonus")) {
+            System.out.println("Double Bonus joué ! Vérifiez les points bonus.");
+        }
     }
 
     private boolean shouldPlaceAtStart(Domino domino) {
@@ -103,12 +112,10 @@ public final class Game {
     }
 
     public boolean isGameOver() {
-        // Vérifier si un joueur a vidé sa main
         if (players.stream().anyMatch(p -> p.getHand().isEmpty())) {
             return true;
         }
 
-        // Vérifier si la pioche est vide et que tous les joueurs sont bloqués
         boolean allPlayersBlocked = players.stream().noneMatch(p -> p.canPlay(board));
         return deck.getRemainingDominoes() == 0 && allPlayersBlocked;
     }
@@ -121,12 +128,10 @@ public final class Game {
 
         System.out.println("\n=== 🏁 Fin de la Partie ===");
 
-        // Vérifier si un joueur a gagné en vidant sa main
         if (players.stream().anyMatch(p -> p.getHand().isEmpty())) {
-            return; // Le message de victoire a déjà été affiché dans playTurn()
+            return;
         }
 
-        // Sinon, afficher les résultats et déterminer le gagnant par points
         showResults();
     }
 
