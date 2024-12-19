@@ -9,12 +9,51 @@ public class Board {
         this.dominos = new ArrayList<>();
     }
 
-    public ArrayList<Domino> getDominos() {
-        return dominos;
+    public boolean isEmpty() {
+        return dominos.isEmpty();
     }
 
-    public boolean isEmpty() {
-        return dominos.isEmpty(); 
+    public boolean canPlaceDomino(Domino domino) {
+        if (isEmpty() || domino.getType().equals("Dynamic")) {
+            return true;
+        }
+        int first = getFirstValue();
+        int last = getLastValue();
+        return domino.getLeftValue() == first || domino.getRightValue() == first ||
+               domino.getLeftValue() == last || domino.getRightValue() == last;
+    }
+
+    public boolean placeDomino(Domino domino, boolean atStart) {
+        if (isEmpty()) {
+            dominos.add(domino);
+            return false;
+        }
+
+        if (domino.getType().equals("Dynamic")) {
+            if (atStart) {
+                domino.changeValues(getFirstValue(), domino.getRightValue());
+                dominos.add(0, domino);
+            } else {
+                domino.changeValues(domino.getLeftValue(), getLastValue());
+                dominos.add(domino);
+            }
+            return true;
+        }
+
+        if (atStart) {
+            if (domino.getRightValue() == getFirstValue()) {
+                dominos.add(0, domino);
+            } else if (domino.getLeftValue() == getFirstValue()) {
+                dominos.add(0, new Domino(domino.getRightValue(), domino.getLeftValue(), domino.getType()));
+            }
+        } else {
+            if (domino.getLeftValue() == getLastValue()) {
+                dominos.add(domino);
+            } else if (domino.getRightValue() == getLastValue()) {
+                dominos.add(new Domino(domino.getRightValue(), domino.getLeftValue(), domino.getType()));
+            }
+        }
+        return true;
     }
 
     public int getFirstValue() {
@@ -25,76 +64,37 @@ public class Board {
         return isEmpty() ? -1 : dominos.get(dominos.size() - 1).getRightValue();
     }
 
-    public boolean canPlaceDomino(Domino domino) {
-        if (isEmpty() || domino.getType().equals("Dynamic")) {
-            return true;
-        }
-        int debut = getFirstValue();
-        int fin = getLastValue();
-        
-        return domino.getLeftValue() == debut || domino.getRightValue() == debut ||
-               domino.getLeftValue() == fin || domino.getRightValue() == fin;
-    }
-
-    public boolean placeDomino(Domino domino, boolean auDebut) {
-        if (isEmpty()) {
-            dominos.add(domino);
-            return false;
-        }
-
-        if (domino.getType().equals("Dynamic")) {
-            if (auDebut) {
-                domino.changeValues(getFirstValue(), domino.getRightValue());
-                dominos.add(0, domino);
-            } else {
-                domino.changeValues(domino.getLeftValue(), getLastValue());
-                dominos.add(domino);
-            }
-            return auDebut;
-        }
-
-        if (auDebut) {
-            if (domino.getRightValue() == getFirstValue()) {
-                dominos.add(0, domino);
-            } else if (domino.getLeftValue() == getFirstValue()) {
-                Domino retourne = new Domino(domino.getRightValue(), domino.getLeftValue(), domino.getType());
-                dominos.add(0, retourne);
-            }
-        } else {
-            if (domino.getLeftValue() == getLastValue()) {
-                dominos.add(domino);
-            } else if (domino.getRightValue() == getLastValue()) {
-                Domino retourne = new Domino(domino.getRightValue(), domino.getLeftValue(), domino.getType());
-                dominos.add(retourne);
-            }
-        }
-        return auDebut;
-    }
-
     @Override
     public String toString() {
-        if (dominos.isEmpty()) {
+        if (isEmpty()) {
             return "Plateau vide";
         }
-        
-        StringBuilder plateau = new StringBuilder("\nPlateau de jeu:\n");
-        plateau.append("================\n");
-        
+        StringBuilder plateau = new StringBuilder("\nPlateau de jeu:\n================\n");
         for (Domino domino : dominos) {
-            plateau.append(domino.toString()).append(" ");
+            plateau.append(domino).append(" ");
         }
-        
-        plateau.append("\n================");
-        return plateau.toString();
+        return plateau.append("\n================").toString();
     }
 
     public static Board fromString(String str) {
         Board board = new Board();
-        if (!str.isEmpty()) {
-            // Parse le string et ajoute les dominos au board
-            // Pour l'instant, on retourne juste un board vide
+
+        if (str.isEmpty() || str.contains("Plateau vide")) {
+            return board;
         }
+
+        str = str.replace("\nPlateau de jeu:\n", "")
+                 .replace("================\n", "")
+                 .trim();
+
+        String[] dominoStrings = str.split(" ");
+        for (String dominoStr : dominoStrings) {
+            if (!dominoStr.isEmpty()) {
+                Domino domino = Domino.fromString(dominoStr.trim());
+                board.dominos.add(domino);
+            }
+        }
+
         return board;
     }
 }
-

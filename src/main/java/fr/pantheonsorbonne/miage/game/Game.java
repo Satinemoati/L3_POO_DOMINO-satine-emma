@@ -3,16 +3,15 @@ package fr.pantheonsorbonne.miage.game;
 import java.util.List;
 
 public final class Game {
-    private Board board;
-    private List<Player> players;
-    private Deck deck;
+    private final Board board;
+    private final List<Player> players;
+    private final Deck deck;
     private int currentPlayerIndex;
 
     public Game(List<Player> players) {
         if (players == null || players.isEmpty()) {
             throw new IllegalArgumentException("La liste des joueurs ne peut pas être vide.");
         }
-
         this.players = players;
         this.deck = new Deck();
         this.board = new Board();
@@ -33,16 +32,19 @@ public final class Game {
         Domino highestDouble = null;
 
         for (Player player : players) {
-            for (Domino d : player.getHand()) {
-                if (d.isDouble()) {
-                    if (highestDouble == null || d.getLeftValue() > highestDouble.getLeftValue()) {
-                        highestDouble = d;
+            for (Domino domino : player.getHand()) {
+                if (domino.isDouble()) {
+                    if (highestDouble == null || domino.getLeftValue() > highestDouble.getLeftValue()) {
+                        highestDouble = domino;
                         startingPlayer = player;
                     }
                 }
             }
         }
-        if (startingPlayer == null) startingPlayer = players.get(0);
+
+        if (startingPlayer == null) {
+            startingPlayer = players.get(0);
+        }
         System.out.println("Le premier joueur est : " + startingPlayer.getName());
         return startingPlayer;
     }
@@ -55,7 +57,7 @@ public final class Game {
         System.out.println("Dominos restants dans la pioche : " + deck.getRemainingDominoes());
 
         if (!player.canPlay(board)) {
-            System.out.println(player.getName() + " ne peut pas jouer et essaie de piocher...");
+            System.out.println(player.getName() + " ne peut pas jouer.");
             if (!tryToDraw(player)) {
                 System.out.println("La pioche est vide, " + player.getName() + " passe son tour.");
             }
@@ -112,12 +114,12 @@ public final class Game {
     }
 
     public boolean isGameOver() {
-        if (players.stream().anyMatch(p -> p.getHand().isEmpty())) {
+        if (players.stream().anyMatch(player -> player.getHand().isEmpty())) {
             return true;
         }
 
-        boolean allPlayersBlocked = players.stream().noneMatch(p -> p.canPlay(board));
-        return deck.getRemainingDominoes() == 0 && allPlayersBlocked;
+        boolean allPlayersBlocked = players.stream().noneMatch(player -> player.canPlay(board));
+        return deck.isEmpty() && allPlayersBlocked;
     }
 
     public void start() {
@@ -128,7 +130,7 @@ public final class Game {
 
         System.out.println("\n=== 🏁 Fin de la Partie ===");
 
-        if (players.stream().anyMatch(p -> p.getHand().isEmpty())) {
+        if (players.stream().anyMatch(player -> player.getHand().isEmpty())) {
             return;
         }
 

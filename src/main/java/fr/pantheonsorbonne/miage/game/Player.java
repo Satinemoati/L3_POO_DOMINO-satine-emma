@@ -34,35 +34,14 @@ public class Player {
     }
 
     public boolean canPlay(Board board) {
-        for (Domino domino : hand) {
-            if (board.canPlaceDomino(domino)) {
-                return true;
-            }
-        }
-        return false;
+        return hand.stream().anyMatch(board::canPlaceDomino);
     }
 
     public Domino chooseDomino(Board board) {
-        for (Domino domino : hand) {
-            if (board.canPlaceDomino(domino)) {
-                return domino;
-            }
-        }
-        return null;
-    }
-
-    public Domino getHighestDouble() {
-        Domino highestDouble = null;
-        for (Domino domino : hand) {
-            if (domino.isDouble() && (highestDouble == null || domino.getTotal() > highestDouble.getTotal())) {
-                highestDouble = domino;
-            }
-        }
-        return highestDouble;
+        return hand.stream().filter(board::canPlaceDomino).findFirst().orElse(null);
     }
 
     public int calculateRemainingPoints() {
         return hand.stream().mapToInt(Domino::getTotal).sum();
     }
 }
-

@@ -50,9 +50,8 @@ public class Domino {
     public String toString() {
         String prefix = "";
         if (type.equals("Dynamic")) prefix = "D";
-        if (type.equals("Blocking")) prefix = "B"; 
+        if (type.equals("Blocking")) prefix = "B";
         if (type.equals("Double Bonus")) prefix = "*";
-        
         return prefix + "[" + leftValue + "|" + rightValue + "]";
     }
 

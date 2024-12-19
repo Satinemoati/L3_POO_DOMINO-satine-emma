@@ -15,7 +15,6 @@ public class Deck {
 
     private void createDeck() {
         Set<String> usedCombinations = new HashSet<>();
-        
         for (int left = 0; left <= 6; left++) {
             for (int right = left; right <= 6; right++) {
                 String combinationKey = left + "|" + right;
@@ -27,17 +26,14 @@ public class Deck {
                 }
             }
         }
-        System.out.println(" Pioche créée avec " + deck.size() + " dominos");
+        System.out.println("Pioche créée avec " + deck.size() + " dominos");
     }
 
     private String determineType(int left, int right) {
-        if (left == right) {
-            return (left % 2 == 0) ? "Double Bonus" : "Standard";
-        } else if (left + right > 10) {
-            return "Blocking";
-        } else if (left + right < 5) {
-            return "Dynamic";
-        }
+        if (left == right) return "Double";
+        if ((left + right) % 5 == 0) return "Double Bonus";
+        if ((left + right) < 5) return "Dynamic";
+        if ((left + right) > 10) return "Blocking";
         return "Standard";
     }
 
@@ -48,7 +44,7 @@ public class Deck {
             tempDeck.add(deck.remove(randomIndex));
         }
         deck = tempDeck;
-        System.out.println(" Pioche mélangée");
+        System.out.println("Pioche mélangée");
     }
 
     public Domino draw() {
@@ -65,12 +61,7 @@ public class Deck {
         return deck.size();
     }
 
-    @Override
-    public String toString() {
-        return "Deck: " + deck.size() + " dominoes remaining";
-    }
-
     public boolean isEmpty() {
-        return deck.isEmpty(); // Si `deck` est la collection représentant la pioche.
+        return deck.isEmpty();
     }
 }
