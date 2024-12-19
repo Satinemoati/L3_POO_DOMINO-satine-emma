@@ -1,158 +1,135 @@
 package fr.pantheonsorbonne.miage.net;
 
-import fr.pantheonsorbonne.miage.DominoNetworkEngine;
-import fr.pantheonsorbonne.miage.PlayerFacade;
-import fr.pantheonsorbonne.miage.game.*;
-import fr.pantheonsorbonne.miage.model.Game;
-import fr.pantheonsorbonne.miage.model.GameCommand;
+import fr.pantheonsorbonne.miage.game.Domino;
+import fr.pantheonsorbonne.miage.game.Board;
 
+import java.io.*;
+import java.net.Socket;
 import java.util.*;
 
-public class DominoPlayerEngine extends DominoNetworkEngine {
+public class DominoPlayerEngine {
 
-    private final List<Domino> hand;   // La main du joueur
-    private Board localBoard;          // Le plateau local
-    private final String playerName;   // Nom du joueur
-    private final String skill;        // Compétence du joueur
+    private final String playerName;
+    private final Socket socket;
+    private final BufferedReader in;
+    private final PrintWriter out;
+    private List<Domino> hand = new ArrayList<>();
+    private Board localBoard = new Board();
 
-    public DominoPlayerEngine(Game game, PlayerFacade facade, String playerName, String skill) {
-        super(game, facade);
-        this.hand = new ArrayList<>();
-        this.localBoard = new Board();
+    public DominoPlayerEngine(String playerName, String skill, String host, int port) throws IOException {
         this.playerName = playerName;
-        this.skill = skill;
+        this.socket = new Socket(host, port);
+        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        this.out = new PrintWriter(socket.getOutputStream(), true);
+        out.println(playerName + "|" + skill); // Envoyer les informations du joueur
     }
 
-    @Override
+    /**
+     * Démarre la boucle principale pour gérer les messages du serveur.
+     */
     public void start() {
-        System.out.println("=> Connexion au jeu de dominos en tant que joueur réseau...");
-        boolean gameRunning = true;
-
-        while (gameRunning) {
-            GameCommand command = receiveCommand();
-            if (command == null) continue;
-
-            switch (command.name()) {
-                case "gameStarted":
-                    System.out.println("Partie commencée : " + command.body());
+        try {
+            while (true) {
+                String serverMessage = in.readLine();
+                if (serverMessage == null) {
+                    System.out.println("Connexion au serveur interrompue.");
                     break;
+                }
 
-                case "initialHand":
-                    initializeHand(command.body());
-                    break;
-
-                case "boardState":
-                    updateBoard(command.body());
-                    displayState();
-                    break;
-
-                case "yourTurn":
-                    System.out.println("C'est votre tour !");
+                if (serverMessage.startsWith("gameStarted")) {
+                    System.out.println("=> La partie commence !");
+                } else if (serverMessage.startsWith("initialHand")) {
+                    hand = parseHand(serverMessage.split(":")[1]);
+                    System.out.println("Votre main : " + hand);
+                } else if (serverMessage.startsWith("boardState")) {
+                    localBoard = Board.fromString(serverMessage.split(":")[1]);
+                    displayBoardState();
+                } else if (serverMessage.startsWith("yourTurn")) {
                     playTurn();
+                } else if (serverMessage.startsWith("dominoPlayed")) {
+                    System.out.println(serverMessage.split(":")[1]);
+                } else if (serverMessage.startsWith("gameOver")) {
+                    System.out.println("=> " + serverMessage.split(":")[1]);
                     break;
-
-                case "gameOver":
-                    System.out.println("Partie terminée ! Résultat : " + command.body());
-                    gameRunning = false;
-                    break;
-
-                case "gameBlocked":
-                    System.out.println("La partie est bloquée !");
-                    gameRunning = false;
-                    break;
-
-                default:
-                    System.out.println("Commande inconnue : " + command.name());
+                } else {
+                    System.out.println("Message inconnu reçu : " + serverMessage);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Erreur de communication avec le serveur : " + e.getMessage());
+        } finally {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                System.err.println("Erreur lors de la fermeture de la connexion : " + e.getMessage());
             }
         }
     }
 
     /**
-     * Initialise la main du joueur avec les dominos reçus.
+     * Affiche l'état actuel du plateau.
      */
-    private void initializeHand(String handStr) {
-        hand.clear();
-        Arrays.stream(handStr.replaceAll("[\\[\\]]", "").split(", "))
-              .map(Domino::fromString)
-              .forEach(hand::add);
-        System.out.println("Votre main initiale : " + hand);
+    private void displayBoardState() {
+        System.out.println("\nPlateau de jeu actuel :");
+        System.out.println(localBoard);
+        System.out.println("========================");
     }
 
     /**
-     * Met à jour le plateau local reçu depuis l'hôte.
+     * Parse la main du joueur à partir d'une chaîne envoyée par le serveur.
      */
-    private void updateBoard(String boardState) {
-        localBoard = Board.fromString(boardState);
-    }
-
-    /**
-     * Gère le tour de jeu du joueur.
-     */
-    private void playTurn() {
-        Domino dominoToPlay = selectValidDomino();
-
-        if (dominoToPlay != null) {
-            sendCommandToPlayer(playerName, "playDomino", dominoToPlay.toString());
-            hand.remove(dominoToPlay);
-            System.out.println("Vous avez joué : " + dominoToPlay);
-
-            // Compétence Opportuniste : rejouer immédiatement si c'est un double
-            if (skill.equals("Opportuniste") && dominoToPlay.isDouble()) {
-                System.out.println("Compétence Opportuniste activée : Vous rejouez !");
-                playTurn();
-            }
-        } else {
-            // Pioche ou passe le tour
-            if (!drawDomino()) {
-                System.out.println("Impossible de jouer ou de piocher. Vous passez votre tour.");
-                sendCommandToPlayer(playerName, "pass", "");
-            }
+    private List<Domino> parseHand(String handStr) {
+        String[] dominos = handStr.replace("[", "").replace("]", "").split(", ");
+        List<Domino> hand = new ArrayList<>();
+        for (String d : dominos) {
+            hand.add(Domino.fromString(d));
         }
+        return hand;
     }
 
     /**
-     * Sélectionne un domino valide à jouer en tenant compte des compétences et types de dominos.
+     * Permet au joueur de choisir un domino jouable.
      */
-    private Domino selectValidDomino() {
+    private Domino chooseDominoToPlay() {
         for (Domino domino : hand) {
             if (localBoard.canPlaceDomino(domino)) {
-                if (domino.getType().equals("Blocking")) {
-                    System.out.println("Domino Bloquant activé : Le prochain joueur sera bloqué !");
-                }
-                return domino;
+                return domino; // Retourne le premier domino jouable
             }
         }
-        return null;
+        return null; // Aucun domino jouable
     }
 
     /**
-     * Tente de piocher un domino jusqu'à en trouver un jouable.
+     * Effectue le tour du joueur.
      */
-    private boolean drawDomino() {
-        System.out.println("Aucun domino jouable, tentative de pioche...");
-        while (true) {
-            sendCommandToPlayer(playerName, "drawDomino", "");
-            GameCommand command = receiveCommand();
-            if (command != null && command.name().equals("dominoDrawn")) {
-                Domino drawnDomino = Domino.fromString(command.body());
-                hand.add(drawnDomino);
-                System.out.println("Domino pioché : " + drawnDomino);
-                if (localBoard.canPlaceDomino(drawnDomino)) {
-                    return true;
-                }
-            } else {
-                break; // Arrêter si la pioche est vide
-            }
+    private void playTurn() {
+        System.out.println("C'est votre tour !");
+        Domino chosenDomino = chooseDominoToPlay();
+
+        if (chosenDomino != null) {
+            hand.remove(chosenDomino);
+            out.println("playDomino:" + chosenDomino);
+            System.out.println("Vous avez joué : " + chosenDomino);
+        } else {
+            System.out.println("Aucun domino jouable. Vous passez votre tour.");
+            out.println("pass");
         }
-        return false;
     }
 
     /**
-     * Affiche l'état actuel du jeu.
+     * Point d'entrée principal pour exécuter un joueur.
      */
-    private void displayState() {
-        System.out.println("\nÉtat actuel du jeu :");
-        System.out.println("Plateau : " + localBoard);
-        System.out.println("Votre main : " + hand);
+    public static void main(String[] args) {
+        try (Scanner scanner = new Scanner(System.in)) {
+            System.out.println("Entrez votre nom : ");
+            String name = scanner.nextLine();
+            System.out.println("Entrez votre compétence (Aggressif, Défensif, Opportuniste) : ");
+            String skill = scanner.nextLine();
+
+            DominoPlayerEngine player = new DominoPlayerEngine(name, skill, "localhost", 12345);
+            player.start();
+        } catch (IOException e) {
+            System.err.println("Erreur : " + e.getMessage());
+        }
     }
 }

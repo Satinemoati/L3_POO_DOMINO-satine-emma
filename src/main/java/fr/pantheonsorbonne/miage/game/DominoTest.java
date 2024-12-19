@@ -49,7 +49,7 @@ public class DominoTest {
 
     private static void faireUnePause() {
         try {
-            Thread.sleep(2000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             System.out.println(" -> Interruption du jeu");

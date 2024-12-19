@@ -66,8 +66,22 @@ public class Domino {
         return this.leftValue == otherDomino.leftValue && this.rightValue == otherDomino.rightValue;
     }
 
+    /**
+     * Convertit une chaîne en objet Domino.
+     * Exemple d'entrée : "[2|4]" ou "2|4"
+     */
     public static Domino fromString(String str) {
-        String[] values = str.split(",");
-        return new Domino(Integer.parseInt(values[0]), Integer.parseInt(values[1]), "Normal");
+        str = str.replaceAll("[^0-9|]", ""); // Nettoyer les caractères non numériques ou le séparateur "|"
+        String[] values = str.split("\\|");
+        if (values.length == 2) {
+            try {
+                int leftValue = Integer.parseInt(values[0]);
+                int rightValue = Integer.parseInt(values[1]);
+                return new Domino(leftValue, rightValue, "Normal");
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Erreur de format pour le domino : " + str, e);
+            }
+        }
+        throw new IllegalArgumentException("Format de domino invalide : " + str);
     }
 }

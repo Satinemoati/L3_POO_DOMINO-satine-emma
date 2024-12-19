@@ -62,7 +62,7 @@ public final class Game {
         } else {
             Domino domino = player.chooseDomino(board);
             if (domino != null) {
-                boolean placeAtStart = shouldPlaceAtStart(domino);  // Dynamique : déterminer où jouer
+                boolean placeAtStart = shouldPlaceAtStart(domino);
                 board.placeDomino(domino, placeAtStart);
                 player.playDomino(domino);
                 System.out.println(player.getName() + " place " + domino + (placeAtStart ? " à gauche" : " à droite"));
@@ -72,14 +72,19 @@ public final class Game {
         }
 
         System.out.println(board);
+
+        // Vérifier si le joueur a gagné en vidant sa main
+        if (player.getHand().isEmpty()) {
+            System.out.println("\n=== 🎉 " + player.getName() + " a gagné en jouant tous ses dominos ! ===");
+            return;
+        }
+
         moveToNextPlayer();
     }
 
     private boolean shouldPlaceAtStart(Domino domino) {
-        // Logique pour déterminer si on place le domino à gauche ou à droite
         int firstValue = board.getFirstValue();
         int lastValue = board.getLastValue();
-        // Préférer placer au début si possible, sinon à la fin
         return (domino.getLeftValue() == firstValue || domino.getRightValue() == firstValue) &&
                !(domino.getLeftValue() == lastValue || domino.getRightValue() == lastValue);
     }
@@ -98,9 +103,14 @@ public final class Game {
     }
 
     public boolean isGameOver() {
-        if (players.stream().anyMatch(p -> p.getHand().isEmpty())) return true;
-        if (deck.getRemainingDominoes() == 0 && players.stream().noneMatch(p -> p.canPlay(board))) return true;
-        return false;
+        // Vérifier si un joueur a vidé sa main
+        if (players.stream().anyMatch(p -> p.getHand().isEmpty())) {
+            return true;
+        }
+
+        // Vérifier si la pioche est vide et que tous les joueurs sont bloqués
+        boolean allPlayersBlocked = players.stream().noneMatch(p -> p.canPlay(board));
+        return deck.getRemainingDominoes() == 0 && allPlayersBlocked;
     }
 
     public void start() {
@@ -108,55 +118,31 @@ public final class Game {
         while (!isGameOver()) {
             playTurn();
         }
-    
+
         System.out.println("\n=== 🏁 Fin de la Partie ===");
-    
-        // Afficher le vainqueur
-        showWinner();
-        System.out.println(); // Ligne vide pour la lisibilité
-    
-        // Afficher les résultats finaux
+
+        // Vérifier si un joueur a gagné en vidant sa main
+        if (players.stream().anyMatch(p -> p.getHand().isEmpty())) {
+            return; // Le message de victoire a déjà été affiché dans playTurn()
+        }
+
+        // Sinon, afficher les résultats et déterminer le gagnant par points
         showResults();
     }
-    
-
-    
-    private void showWinner() {
-        Player winner = null;
-    
-        // Vérifier si un joueur a terminé ses dominos
-        for (Player player : players) {
-            if (player.getHand().isEmpty()) {
-                System.out.println(player.getName() + " a gagné en ayant terminé tous ses dominos !");
-                return; // Arrêter la méthode immédiatement si un joueur a gagné
-            }
-        }
-    
-        // Si la pioche est vide, déterminer le gagnant par les points
-        if (deck.getRemainingDominoes() == 0) {
-            winner = players.stream()
-                    .min((p1, p2) -> Integer.compare(p1.calculateRemainingPoints(), p2.calculateRemainingPoints()))
-                    .orElse(null);
-        }
-    
-        // Afficher le gagnant basé sur les points ou message par défaut
-        if (winner != null) {
-            System.out.println(winner.getName() + " a gagné avec un total de " 
-                               + winner.calculateRemainingPoints() + " points !");
-        } else {
-            System.out.println("Aucun gagnant clair n'a pu être déterminé !");
-        }
-    }
-    
-    
 
     private void showResults() {
-        System.out.println("\n=== Fin de la Partie ===");
-        System.out.println("Résultats finaux :");
+        System.out.println("\n=== Résultats Finaux ===");
+        Player winner = players.stream()
+                .min((p1, p2) -> Integer.compare(p1.calculateRemainingPoints(), p2.calculateRemainingPoints()))
+                .orElse(null);
+
+        if (winner != null) {
+            System.out.println("\n=== 🎉 " + winner.getName() + " a gagné avec le moins de points restants ! ===");
+        }
 
         for (Player player : players) {
             int score = player.calculateRemainingPoints();
-            System.out.println("le joeur qui gagne la partie est "+ player.getName() + " avec : " + score + " points");
+            System.out.println(player.getName() + " a un total de " + score + " points.");
         }
     }
 }
