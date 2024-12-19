@@ -114,39 +114,58 @@ public final class Game {
     }
 
     public boolean isGameOver() {
-        if (players.stream().anyMatch(player -> player.getHand().isEmpty())) {
-            return true;
+        for (Player player : players) {
+            if (player.getHand().isEmpty()) {
+                return true;
+            }
         }
-
-        boolean allPlayersBlocked = players.stream().noneMatch(player -> player.canPlay(board));
+    
+        boolean allPlayersBlocked = true;
+        for (Player player : players) {
+            if (player.canPlay(board)) {
+                allPlayersBlocked = false;
+                break;
+            }
+        }
+    
         return deck.isEmpty() && allPlayersBlocked;
     }
-
+    
     public void start() {
         System.out.println("\n=== 🎮 Début de la Partie ===");
         while (!isGameOver()) {
             playTurn();
         }
-
+    
         System.out.println("\n=== 🏁 Fin de la Partie ===");
-
-        if (players.stream().anyMatch(player -> player.getHand().isEmpty())) {
-            return;
+    
+        for (Player player : players) {
+            if (player.getHand().isEmpty()) {
+                return;
+            }
         }
-
+    
         showResults();
     }
-
+    
     private void showResults() {
         System.out.println("\n=== Résultats Finaux ===");
-        Player winner = players.stream()
-                .min((p1, p2) -> Integer.compare(p1.calculateRemainingPoints(), p2.calculateRemainingPoints()))
-                .orElse(null);
-
+    
+        Player winner = null;
+        int lowestScore = Integer.MAX_VALUE;
+    
+        for (Player player : players) {
+            int score = player.calculateRemainingPoints();
+            if (score < lowestScore) {
+                lowestScore = score;
+                winner = player;
+            }
+        }
+    
         if (winner != null) {
             System.out.println("\n=== 🎉 " + winner.getName() + " a gagné avec le moins de points restants ! ===");
         }
-
+    
         for (Player player : players) {
             int score = player.calculateRemainingPoints();
             System.out.println(player.getName() + " a un total de " + score + " points.");

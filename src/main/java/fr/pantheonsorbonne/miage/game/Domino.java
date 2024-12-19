@@ -30,7 +30,7 @@ public class Domino {
     }
 
     public void changeValues(int newLeft, int newRight) {
-        if (type.equals("Dynamic") && !effectUsed) {
+        if (type.equals("Dynamique") && !effectUsed) {
             leftValue = newLeft;
             rightValue = newRight;
             effectUsed = true;
@@ -49,15 +49,14 @@ public class Domino {
     @Override
     public String toString() {
         String prefix = "";
-        if (type.equals("Dynamic")) prefix = "D";
-        if (type.equals("Blocking")) prefix = "B";
+        if (type.equals("Dynamique")) prefix = "D";
+        if (type.equals("Bloquant")) prefix = "B";
         if (type.equals("Double Bonus")) prefix = "*";
         return prefix + "[" + leftValue + "|" + rightValue + "]";
     }
 
     public static Domino fromString(String str) {
-        str = str.replaceAll("[^0-9|]", "");
-        String[] values = str.split("\\|");
+        String[] values = str.replaceAll("[^0-6|]", "").split("\\|");
         if (values.length == 2) {
             try {
                 int leftValue = Integer.parseInt(values[0]);

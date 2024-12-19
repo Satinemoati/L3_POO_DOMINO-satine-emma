@@ -83,9 +83,7 @@ public class Board {
             return board;
         }
 
-        str = str.replace("\nPlateau de jeu:\n", "")
-                 .replace("================\n", "")
-                 .trim();
+        str = str.replaceAll("\nPlateau de jeu:\n|================\n", "").trim();
 
         String[] dominoStrings = str.split(" ");
         for (String dominoStr : dominoStrings) {

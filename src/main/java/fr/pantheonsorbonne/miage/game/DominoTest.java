@@ -25,7 +25,7 @@ public class DominoTest {
         List<Player> joueurs = new ArrayList<>();
         joueurs.add(new Player("Emma", "Aggressif"));
         joueurs.add(new Player("Satine", "Défensif"));
-        joueurs.add(new Player("Nicolas", "Opportuniste"));
+        joueurs.add(new Player("Hena", "Opportuniste"));
         return joueurs;
     }
 
