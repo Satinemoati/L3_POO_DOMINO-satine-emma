@@ -22,13 +22,11 @@ public class DominoPlayerEngine {
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.out = new PrintWriter(socket.getOutputStream(), true);
 
-        // Envoyer les informations du joueur au serveur
+       
         out.println(playerName + "|" + skill);
     }
 
-    /**
-     * Démarre la boucle principale pour gérer les messages du serveur.
-     */
+    
     public void start() {
         try {
             while (true) {
@@ -51,19 +49,16 @@ public class DominoPlayerEngine {
         }
     }
 
-    /**
-     * Gère les messages reçus du serveur.
-     */
+    
     private void handleServerMessage(String message) throws IOException {
         if (message == null || message.isEmpty()) {
             System.out.println("Message vide ou invalide reçu.");
             return;
         }
 
-        String[] parts = message.split(":", 2); // Sépare uniquement en deux parties
+        String[] parts = message.split(":", 2); 
         String command = parts[0];
-        String data = (parts.length > 1) ? parts[1] : ""; // Si pas de données, chaîne vide
-
+        String data = (parts.length > 1) ? parts[1] : ""; 
         switch (command) {
             case "gameStarted":
                 System.out.println("=> La partie commence !");
@@ -128,7 +123,7 @@ public class DominoPlayerEngine {
             case "gameOver":
                 if (!data.isEmpty()) {
                     System.out.println("=> " + data);
-                    System.exit(0); // Fin de la partie
+                    System.exit(0); 
                 } else {
                     System.out.println("Erreur : message de fin de partie mal formé.");
                 }
@@ -140,18 +135,14 @@ public class DominoPlayerEngine {
         }
     }
 
-    /**
-     * Affiche l'état actuel du plateau.
-     */
+    
     private void displayBoardState() {
         System.out.println("\nPlateau de jeu actuel :");
         System.out.println(localBoard);
         System.out.println("========================");
     }
 
-    /**
-     * Parse la main du joueur à partir d'une chaîne envoyée par le serveur.
-     */
+    
     private List<Domino> parseHand(String handStr) {
         String[] dominos = handStr.replace("[", "").replace("]", "").split(", ");
         List<Domino> hand = new ArrayList<>();
@@ -161,21 +152,17 @@ public class DominoPlayerEngine {
         return hand;
     }
 
-    /**
-     * Permet au joueur de choisir un domino jouable.
-     */
+    
     private Domino chooseDominoToPlay() {
         for (Domino domino : hand) {
             if (localBoard.canPlaceDomino(domino)) {
-                return domino; // Retourne le premier domino jouable
+                return domino; 
             }
         }
-        return null; // Aucun domino jouable
+        return null; 
     }
 
-    /**
-     * Effectue le tour du joueur.
-     */
+    
     private void playTurn() throws IOException {
         System.out.println("C'est votre tour !");
         Domino chosenDomino = chooseDominoToPlay();
@@ -190,9 +177,7 @@ public class DominoPlayerEngine {
         }
     }
 
-    /**
-     * Point d'entrée principal pour exécuter un joueur.
-     */
+    
     public static void main(String[] args) {
         try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("Entrez votre nom : ");

@@ -87,7 +87,7 @@ public final class Game {
     private void handleSpecialDominoEffects(Player player, Domino domino) {
         if (domino.getType().equals("Blocking")) {
             System.out.println("Domino Bloquant joué par " + player.getName() + "! Le joueur suivant est bloqué.");
-            moveToNextPlayer(); // Le joueur suivant est directement sauté.
+            moveToNextPlayer(); 
         } else if (domino.getType().equals("Double Bonus")) {
             System.out.println("Double Bonus joué ! Vérifiez les points bonus.");
         }

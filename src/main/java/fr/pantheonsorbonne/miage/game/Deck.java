@@ -30,11 +30,11 @@ public class Deck {
     }
 
     private String determineType(int left, int right) {
-        if (left == right) return "Double";
-        if ((left + right) % 5 == 0) return "Double Bonus";
-        if ((left + right) < 5) return "Dynamic";
-        if ((left + right) > 10) return "Blocking";
-        return "Standard";
+        if (left == right) return "Double"; 
+        if ((left + right) % 5 == 0) return "Double Bonus"; 
+        if (Math.random() < 0.2) return "Dynamic";
+        if (Math.random() < 0.2) return "Blocking";
+        return "Standard"; 
     }
 
     public void shuffle() {
